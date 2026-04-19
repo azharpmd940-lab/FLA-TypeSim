@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FLA-TypeSim — Formal Language Typing Classifier</title>
+  <link rel="stylesheet" href="theme.css" />
+  <style>
+    /* Inline critical overrides */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .full-col {
+      grid-column: 1 / -1;
+    }
+
+    .mono-formula {
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 14px;
+      margin: 8px 0;
+      color: var(--cyan);
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .info-card {
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-size: 10px;
+      color: var(--text2);
+    }
+
+    .info-card strong {
+      display: block;
+      color: var(--text0);
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .nfa-active-states {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+      font-size: 11px;
+    }
+
+    .nfa-state-tag {
+      padding: 2px 8px;
+      border: 1px solid var(--blue);
+      border-radius: 3px;
+      color: var(--blue);
+      background: rgba(74, 158, 255, 0.08);
+    }
+
+    .highlight-row {
+      background: rgba(74, 158, 255, 0.15) !important;
+    }
+
+    .highlight-cell {
+      background: rgba(0, 255, 157, 0.4) !important;
+      color: #fff !important;
+      font-weight: bold;
+      border-radius: 3px;
+      outline: 1px solid #00ff9d;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-shell">
+
+    <!-- ── Header ─────────────────────────────── -->
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-icon">⟨δ⟩</div>
+        <div>
+          <div class="header-title">FLA-TypeSim</div>
+          <div class="header-subtitle">Formal Language-Based Behavioral Classification of Typing Patterns</div>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="badge green">Σ = {F,M,S,R,P,N}</span>
+        <span class="badge blue">DFA · NFA · Pumping Lemma</span>
+      </div>
+    </header>
+
+    <!-- ── App Body ───────────────────────────── -->
+    <div class="app-body">
+
+      <!-- ── Sidebar ────────────────────────────── -->
+      <aside class="sidebar">
+
+        <!-- Alphabet Legend -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-dot"></div>
+            <h2>Alphabet Σ</h2>
+          </div>
+          <div class="panel-body">
+            <div class="alphabet-legend">
+              <div class="alpha-row">
+                <span class="sym-chip sym-F">F</span>
+                <span class="alpha-name">Fast</span>
+                <span class="alpha-desc">IKI &lt; 120ms</span>
+              </div>
+              <div class="alpha-row">
+                <span class="sym-chip sym-M">M</span>
+                <span class="alpha-name">Medium</span>
+                <span class="alpha-desc">120–300ms</span>
+              </div>
+              <div class="alpha-row">
+                <span class="sym-chip sym-S">S</span>
+                <span class="alpha-name">Slow</span>
+                <span class="alpha-desc">300–700ms</span>
+              </div>
+              <div class="alpha-row">
+                <span class="sym-chip sym-R">R</span>
+                <span class="alpha-name">Repetitive</span>
+                <span class="alpha-desc">Uniform run ≥4</span>
+              </div>
+              <div class="alpha-row">
+                <span class="sym-chip sym-P">P</span>
+                <span class="alpha-name">Pause</span>
+                <span class="alpha-desc">IKI ≥ 700ms</span>
+              </div>
+              <div class="alpha-row">
+                <span class="sym-chip sym-N">N</span>
+                <span class="alpha-name">Normal</span>
+                <span class="alpha-desc">Unclassified</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preset Patterns -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-dot orange"></div>
+            <h2>Preset Patterns</h2>
+          </div>
+          <div class="panel-body">
+            <div class="section-title">Bot Patterns</div>
+            <div class="preset-grid">
+              <button class="btn preset-btn bot" data-preset="bot-5f">🤖 5×F</button>
+              <button class="btn preset-btn bot" data-preset="bot-rep">🤖 6×R</button>
+              <button class="btn preset-btn bot" data-preset="bot-alt">🤖 FM×5</button>
+            </div>
+            <div class="section-title" style="margin-top:12px">Human Patterns</div>
+            <div class="preset-grid">
+              <button class="btn preset-btn human" data-preset="human-nat">👤 Natural</button>
+              <button class="btn preset-btn human" data-preset="human-burst">👤 Burst</button>
+              <button class="btn preset-btn human" data-preset="human-think">👤 Think</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-dot blue"></div>
+            <h2>Event Log</h2>
+          </div>
+          <div class="panel-body">
+            <div id="event-log">
+              <div class="log-entry log-info">[boot] FLA-TypeSim initialized.</div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ── Main Panel ──────────────────────────── -->
+      <main class="main-panel">
+
+        <div class="panel">
+          <div class="tab-bar">
+            <button class="tab-btn active" data-tab="capture">⌨ Live Capture</button>
+            <button class="tab-btn" data-tab="theory">Theory</button>
+          </div>
+
+          <!-- ── Tab: Live Capture ────────────────── -->
+          <div id="tab-capture" class="tab-panel active">
+            <div class="two-col">
+              <div>
+                <div class="section-title">Live Keystroke Capture</div>
+                <p style="font-size:11px; color:var(--text2); margin-bottom:8px;">
+                  Click "Start Capture", type naturally in the box below. Each keystroke is encoded into a formal symbol
+                  over Σ in real-time and fed into all automata simultaneously.
+                </p>
+                <div class="btn-group">
+                  <button id="btn-start-capture" class="btn btn-primary">▶ Start Capture</button>
+                  <button id="btn-stop-capture" class="btn btn-danger" disabled>■ Stop</button>
+                  <button id="btn-clear-capture" class="btn">✕ Clear</button>
+                  <button id="btn-analyze" class="btn btn-warning">⚙ Analyze</button>
+                </div>
+                <textarea id="capture-area" spellcheck="false"
+                  placeholder="Click 'Start Capture' then type here..."></textarea>
+
+                <div class="iki-meter">
+                  <span style="color:var(--text2);font-size:10px;">LAST IKI</span>
+                  <span id="iki-value" style="font-size:20px;font-weight:700;color:var(--cyan)">—</span>
+                  <span id="iki-sym" class="iki-sym">—</span>
+                  <div style="flex:1;height:4px;background:var(--bg0);border-radius:2px;border:1px solid var(--border)">
+                    <div id="iki-bar"
+                      style="height:100%;width:0%;background:var(--green);border-radius:2px;transition:width 0.1s,background 0.1s;">
+                    </div>
+                  </div>
+                </div>
+
+                <div style="margin-top:8px; font-size:10px; color:var(--text2);">Symbol stream:</div>
+                <div id="symbol-stream"></div>
+
+                <div class="speed-control">
+                  <span>Anim Speed:</span>
+                  <input type="range" id="speed-slider" min="100" max="1200" value="400" step="50" />
+                  <span id="speed-val">400ms</span>
+                </div>
+              </div>
+
+              <div>
+                <div class="section-title">Classification Result</div>
+                <div id="live-result" style="min-height:200px;">
+                  <div
+                    style="color:var(--text2);font-size:11px;padding:20px;text-align:center;border:1px dashed var(--border);border-radius:4px;">
+                    Type in the capture area or load a preset pattern to see classification results here.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Tab: DFA Engine ──────────────────── -->
+          <div id="tab-dfa" class="tab-panel">
+            <div class="replay-bar"
+              style="margin-bottom:16px; padding:12px; background:var(--bg0); border:1px solid var(--border); border-radius:4px; display:flex; align-items:center; gap:12px;">
+              <button id="btn-replay-dfa" class="btn btn-primary" disabled>▶ Replay Capture</button>
+              <div style="font-size:11px; color:var(--text2);">Stream:</div>
+              <div id="dfa-symbol-stream"
+                style="display:flex; gap:4px; overflow-y:auto; flex-wrap:wrap; max-height:80px; flex:1; align-items:center;">
+                <span style="color:var(--text2); font-size:10px; font-style:italic;">No active capture.</span>
+              </div>
+            </div>
+
+            <div class="info-grid">
+              <div class="info-card">
+                <strong>5-Tuple Definition</strong>
+                M = (Q, Σ, δ, q₀, F)
+              </div>
+              <div class="info-card">
+                <strong>Determinism</strong>
+                δ: Q × Σ → Q (total function)
+              </div>
+              <div class="info-card">
+                <strong>Language Recognized</strong>
+                L(M) = {w ∈ Σ* | δ*(q₀,w) ∈ F}
+              </div>
+            </div>
+
+            <div class="section-title">Bot DFA 1 — L = {F⁵} (Exactly 5 Fast strokes)</div>
+            <div class="diagram-label">States: {q0,q1,q2,q3,q4,q5,dead} | Start: q0 | Accept: {q5}</div>
+            <div class="diagram-container" id="diagram-bot1"></div>
+            <div style="margin-top:8px;">
+              <div class="section-title">Transition Table</div>
+              <div id="tt-bot1"></div>
+            </div>
+
+            <div class="section-title" style="margin-top:20px;">Bot DFA 2 — L = {R³⁺} (Repetitive ≥3)</div>
+            <div class="diagram-label">States: {q0,q1,q2,q3,dead} | Start: q0 | Accept: {q3}</div>
+            <div class="diagram-container" id="diagram-bot2"></div>
+            <div style="margin-top:8px;">
+              <div class="section-title">Transition Table</div>
+              <div id="tt-bot2"></div>
+            </div>
+
+            <div class="section-title" style="margin-top:20px;">Human DFA — Natural Rhythm (pause + variety)</div>
+            <div class="diagram-label">States: {start,hasVar,hasPause,hasBoth,dead} | Accept: {hasBoth}</div>
+            <div class="diagram-container" id="diagram-human"></div>
+            <div style="margin-top:8px;">
+              <div class="section-title">Transition Table</div>
+              <div id="tt-human"></div>
+            </div>
+          </div>
+
+          <!-- ── Tab: NFA Engine ──────────────────── -->
+          <div id="tab-nfa" class="tab-panel">
+            <div class="replay-bar"
+              style="margin-bottom:16px; padding:12px; background:var(--bg0); border:1px solid var(--border); border-radius:4px; display:flex; align-items:center; gap:12px;">
+              <button id="btn-replay-nfa" class="btn btn-primary" disabled>▶ Replay Capture</button>
+              <div style="font-size:11px; color:var(--text2);">Stream:</div>
+              <div id="nfa-symbol-stream"
+                style="display:flex; gap:4px; overflow-y:auto; flex-wrap:wrap; max-height:80px; flex:1; align-items:center;">
+                <span style="color:var(--text2); font-size:10px; font-style:italic;">No active capture.</span>
+              </div>
+            </div>
+
+            <div class="info-grid">
+              <div class="info-card">
+                <strong>NFA 5-Tuple</strong>
+                M = (Q, Σ, δ, q₀, F)
+              </div>
+              <div class="info-card">
+                <strong>Nondeterminism</strong>
+                δ: Q × (Σ∪{ε}) → P(Q)
+              </div>
+              <div class="info-card">
+                <strong>Acceptance</strong>
+                ∃ path to F ∈ F
+              </div>
+            </div>
+
+            <div class="section-title">Human NFA — Varied+Pause (with ε-transitions)</div>
+            <div class="diagram-label">NFA with ε-transition; models non-deterministic human choice</div>
+            <div class="diagram-container" id="diagram-nfa"></div>
+
+            <div style="margin-top: 16px;">
+              <div class="section-title">Subset Construction: NFA → DFA</div>
+              <p style="font-size:11px;color:var(--text2);margin-bottom:10px;">
+                The Subset Construction algorithm converts any NFA to an equivalent DFA.
+                Each DFA state represents a <em>set</em> of NFA states (a "subset").
+                Below is the equivalent DFA derived from the Human NFA above.
+              </p>
+              <div id="nfa-to-dfa-result">
+                <button class="btn btn-primary" id="btn-run-subset">▶ Run Subset Construction</button>
+                <div id="subset-dfa-container" style="margin-top:12px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Tab: Minimization ────────────────── -->
+          <div id="tab-minimizer" class="tab-panel">
+            <div class="section-title">Myhill-Nerode / Table-Filling Minimization</div>
+            <p style="font-size:11px;color:var(--text2);margin-bottom:12px;">
+              The Table-Filling algorithm identifies and merges <em>indistinguishable</em> states,
+              producing the unique minimal DFA for a given regular language. Two states p, q are
+              distinguishable if ∃ w ∈ Σ* such that exactly one of δ*(p,w), δ*(q,w) is in F.
+            </p>
+            <div id="min-log"
+              style="margin-bottom:14px;padding:12px;background:var(--bg0);border:1px solid var(--border);border-radius:4px;">
+            </div>
+            <div class="diagram-label">Minimized Human DFA</div>
+            <div class="diagram-container" id="diagram-minimized"></div>
+            <div style="margin-top:14px;">
+              <button class="btn btn-primary" id="btn-show-min-table">Show Distinguishability Table</button>
+              <div id="min-table-container" style="margin-top:10px;"></div>
+            </div>
+          </div>
+
+          <!-- ── Tab: Pumping Lemma ───────────────── -->
+          <div id="tab-pumping" class="tab-panel">
+            <div class="section-title">Pumping Lemma — Proving Non-Regularity</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+              <label style="font-size:11px;color:var(--text2);">Pumping Length p =</label>
+              <input type="number" id="pl-n-value" value="5" min="2" max="12" />
+            </div>
+            <div id="pl-content">Loading...</div>
+          </div>
+
+          <!-- ── Tab: Theory ──────────────────────── -->
+          <div id="tab-theory" class="tab-panel">
+            <div class="section-title">The Theory: Behavioral Biometrics via Formal Languages</div>
+            <p style="color:var(--text1); font-size:12px; line-height:1.6; margin-bottom:20px;">
+              Modern transparent anti-bot systems typically rely on heavy statistical machine learning models to analyze
+              typing behavior. However, this engine implements a deterministic mathematical approach based directly on
+              <strong>Theory of Computation</strong>: it treats keystroke rhythms as a formal string belonging to a
+              defined language, utilizing Finite Automata graph theory to classify the "author" as human or machine.
+            </p>
+
+            <div class="section-title">1. The Keystroke Capture Engine</div>
+            <div class="mono-formula" style="line-height:1.8; color:var(--text1); margin-bottom:20px;">
+              <b>Event Trigger:</b> User presses a key on the keyboard.<br>
+              <b>Measurement:</b> The system calculates the <em>Inter-Keystroke Interval (IKI)</em> — the exact
+              milliseconds elapsed since the previous keypress: <br>
+              <span style="color:var(--yellow)">IKI<sub>n</sub> = Timestamp<sub>n</sub> - Timestamp<sub>n-1</sub></span>
+            </div>
+
+            <div class="section-title" style="margin-top:20px;">2. Lexical Analysis (Symbol Encoding)</div>
+            <p style="color:var(--text1); font-size:12px; line-height:1.6; margin-bottom:10px;">
+              The raw millisecond intervals are instantly translated into discrete symbols to construct a formal
+              sequence over our vocabulary alphabet <strong style="color:var(--cyan)">Σ = {F, M, S, R, P, N}</strong>:
+            </p>
+            <div class="info-grid" style="margin-bottom:20px;">
+              <div class="info-card">
+                <strong style="color:#00ff9d">F (Fast)</strong>
+                IKI &lt; 120ms.<br>Common in automated scripts or reflexive bursts.
+              </div>
+              <div class="info-card">
+                <strong style="color:#ffd600">M (Medium)</strong>
+                120ms - 300ms.<br>The standard human typing speed range.
+              </div>
+              <div class="info-card">
+                <strong style="color:#ff6b35">S (Slow)</strong>
+                300ms - 700ms.<br>Deliberate, methodical, or hunt-and-peck typing.
+              </div>
+              <div class="info-card">
+                <strong style="color:#e040fb">P (Pause)</strong>
+                IKI &gt; 700ms.<br>Uniquely human "think-pauses".
+              </div>
+              <div class="info-card">
+                <strong style="color:#40c4ff">R (Repetitive)</strong>
+                4+ identical timings in a row. A hallmark of a macro loop.
+              </div>
+              <div class="info-card">
+                <strong style="color:#b0bec5">N (Normal)</strong>
+                Catch-all dynamic baseline for unclassified timings.
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:20px;">3. Classification via Finite Automata Graphs</div>
+            <div class="two-col" style="margin-bottom:20px; align-items:flex-start;">
+              <div>
+                <div style="color:var(--blue);font-size:12px;font-weight:700;margin-bottom:6px;">Bot Detection
+                  (Deterministic)</div>
+                <p style="color:var(--text2); font-size:11px; line-height:1.5;">
+                  Machines type with mathematical perfection. We run the stream through rigid <strong>Deterministic
+                    Finite Automata (DFA)</strong> that immediately "Accept" (flag as a bot) if they hit constraints
+                  like exactly 5 'F' symbols in a row without deviation, or an unbroken loop of 'R' symbols representing
+                  a programmatic macro loop.
+                </p>
+              </div>
+              <div>
+                <div style="color:var(--purple);font-size:12px;font-weight:700;margin-bottom:6px;">Human Detection
+                  (Nondeterministic)</div>
+                <p style="color:var(--text2); font-size:11px; line-height:1.5;">
+                  Humans are erratic by nature! Our Human Automaton relies heavily on detecting <em>Variety</em> and
+                  crucially, <strong>Pauses ('P')</strong>. We also map out a <strong>Nondeterministic Finite Automaton
+                    (NFA)</strong> with ε-transitions (moves without consuming a symbol) to elegantly model the
+                  probabilistic "choppiness" and uncertainty inherent in genuine human behavior.
+                </p>
+              </div>
+            </div>
+
+            <div class="section-title" style="margin-top:20px;">4. Final Scoring Analytics</div>
+            <div class="mono-formula" style="line-height:1.8; color:var(--text1);">
+              Beyond purely testing binary state graph acceptance, the final verdict considers the overarching
+              mathematical distribution of your timing properties:<br><br>
+              • <strong>Coefficient of Variation (CV):</strong> The standard deviation divided by the mean. Bots have a
+              CV near 0 (perfect uniformity). Humans naturally feature a high variance coefficient.<br>
+              • <strong>Pause Logic:</strong> Scripts fundamentally do not pause to "think" about what character comes
+              next.<br>
+              • <strong>Max Run Length:</strong> The longest consecutive streak of identical categorical timings.
+              Extended identical strings indicate artificial latency injection instead of biological motor processes.
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+    </div><!-- app-body -->
+  </div><!-- app-shell -->
+
+  <!-- ── Scripts (order matters) ──────────────── -->
+  <script src="../engine/dfa.js"></script>
+  <script src="../engine/nfa.js"></script>
+  <script src="../engine/minimizer.js"></script>
+  <script src="../input/keystroke-capture.js"></script>
+  <script src="../input/symbol-encoder.js"></script>
+  <script src="../input/pattern-generator.js"></script>
+  <script src="state-diagram.js"></script>
+  <script src="simulation.js"></script>
+
+  <script>
+    // Extra wiring not in SimulationController
+    window.addEventListener('DOMContentLoaded', () => {
+      // Speed slider
+      const slider = document.getElementById('speed-slider');
+      const speedVal = document.getElementById('speed-val');
+      slider?.addEventListener('input', e => {
+        const v = parseInt(e.target.value);
+        speedVal.textContent = v + 'ms';
+        if (window.sim) window.sim.stepDelay = v;
+      });
+
+      // IKI bar update helper
+      const origStep = SimulationController.prototype._updateIKIMeter;
+      // Hook for IKI bar visual
+      document.addEventListener('iki-update', (e) => {
+        const bar = document.getElementById('iki-bar');
+        if (!bar) return;
+        const iki = e.detail;
+        const pct = Math.min(iki / 1500 * 100, 100);
+        bar.style.width = pct + '%';
+        bar.style.background = iki < 120 ? '#00ff9d' : iki < 300 ? '#ffd600' : iki < 700 ? '#ff6b35' : '#e040fb';
+      });
+
+      // Subset Construction button
+      document.getElementById('btn-run-subset')?.addEventListener('click', () => {
+        const nfa = window.sim?.nfaHuman;
+        if (!nfa) return;
+        const dfa = nfa.toDFA();
+        const container = document.getElementById('subset-dfa-container');
+        container.innerHTML = '<div class="diagram-label">Equivalent DFA via Subset Construction — each state = set of NFA states</div><div id="diagram-subset" class="diagram-container"></div>';
+        const diag = new StateDiagram('diagram-subset', { width: 680, height: 240 });
+        diag.render(dfa.serialize());
+
+        // Table
+        const table = dfa.getTransitionTable();
+        const alphabet = dfa.alphabet;
+        let html = '<div class="section-title" style="margin-top:12px;">DFA Transition Table</div><table class="tt-table"><tr><th>State</th>' +
+          alphabet.map(a => `<th>${a}</th>`).join('') + '</tr>';
+        for (const row of table) {
+          const cls = row.isStart ? 'state-start' : row.isAccept ? 'state-accept' : '';
+          const prefix = row.isStart ? '→' : row.isAccept ? '*' : '';
+          html += `<tr><td class="${cls}">${prefix}${row.state}</td>` +
+            alphabet.map(a => `<td>${row[a] || '∅'}</td>`).join('') + '</tr>';
+        }
+        html += '</table>';
+        container.insertAdjacentHTML('beforeend', html);
+      });
+
+      // DFA transition tables
+      setTimeout(() => {
+        if (window.sim) {
+          renderTransitionTable('tt-bot1', window.sim.dfaBot1);
+          renderTransitionTable('tt-bot2', window.sim.dfaBot2);
+          renderTransitionTable('tt-human', window.sim.dfaHuman);
+        }
+      }, 200);
+
+      // Minimization table button
+      document.getElementById('btn-show-min-table')?.addEventListener('click', () => {
+        const dfa = window.sim?.dfaHuman;
+        if (!dfa) return;
+        const minimizer = new DFAMinimizer(dfa);
+        const result = minimizer.minimize();
+        const container = document.getElementById('min-table-container');
+
+        let html = '<table class="tt-table"><tr><th>Equivalence Class</th><th>States Merged</th></tr>';
+        for (const cls of (result.equivalenceClasses || [])) {
+          html += `<tr><td style="color:var(--cyan)">${cls.sort()[0]}</td><td style="color:var(--text2)">{${cls.join(', ')}}</td></tr>`;
+        }
+        html += '</table>';
+        container.innerHTML = html;
+      });
+    });
+
+    function renderTransitionTable(containerId, dfa) {
+      const el = document.getElementById(containerId);
+      if (!el || !dfa) return;
+      const rows = dfa.getTransitionTable();
+      const alphabet = dfa.alphabet;
+      let html = '<table class="tt-table"><tr><th>State</th>' +
+        alphabet.map(a => `<th>${a}</th>`).join('') + '</tr>';
+      for (const row of rows) {
+        const cls = row.isAccept ? 'state-accept' : row.state === 'dead' ? 'state-dead' : row.isStart ? 'state-start' : '';
+        const prefix = row.isStart ? '→' : row.isAccept ? '*' : '';
+        html += `<tr id="tr-${containerId}-${row.state}"><td class="${cls}">${prefix}${row.state}</td>` +
+          alphabet.map(a => `<td id="td-${containerId}-${row.state}-${a}">${row[a] || '—'}</td>`).join('') + '</tr>';
+      }
+      html += '</table>';
+      el.innerHTML = html;
+    }
+  </script>
+
+</body>
+
+</html>
