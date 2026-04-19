@@ -748,6 +748,76 @@ input[type=number]:focus { border-color: var(--green); }
 
 /* ── Responsive ─────────────────────────────── */
 @media (max-width: 900px) {
-  .app-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .sidebar { height: auto; overflow-y: visible; border-right: none; border-bottom: 1px solid var(--border); }
+  .app-body { 
+    grid-template-columns: 1fr; 
+    grid-template-rows: auto 1fr; 
+    height: auto; 
+    overflow-y: visible; 
+  }
+  .sidebar { 
+    height: auto; 
+    overflow-y: visible; 
+    border-right: none; 
+    border-bottom: 1px solid var(--border); 
+  }
+  .main-panel {
+    overflow-y: visible;
+  }
 }
+
+@media (max-width: 768px) {
+  .app-header { 
+    flex-direction: column; 
+    align-items: flex-start; 
+    gap: 12px; 
+    padding: 12px 16px; 
+  }
+  .header-badge { 
+    width: 100%; 
+    flex-wrap: wrap; 
+  }
+  .badge { 
+    flex: 1; 
+    text-align: center; 
+  }
+  .preset-grid { 
+    grid-template-columns: 1fr 1fr; 
+  }
+  .tab-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tab-btn {
+    padding: 10px 14px;
+    font-size: 10px;
+  }
+  .main-panel {
+    padding: 12px;
+  }
+  .btn-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-group .btn {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  #capture-area {
+    font-size: 16px; /* prevent iOS zoom */
+  }
+}
+
+@media (max-width: 480px) {
+  .preset-grid { 
+    grid-template-columns: 1fr; 
+  }
+  .header-logo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .logo-icon {
+    margin-bottom: 4px;
+  }
+}
+

@@ -79,6 +79,22 @@
       border-radius: 3px;
       outline: 1px solid #00ff9d;
     }
+
+    /* Responsive adjustments for inline grids */
+    @media (max-width: 900px) {
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+      .info-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
